@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#0f0f1a"/>
+  <circle cx="256" cy="230" r="110" fill="none" stroke="#7c6bff" stroke-width="22" stroke-dasharray="450 200" stroke-linecap="round"/>
+  <circle cx="256" cy="230" r="110" fill="none" stroke="#4ecdc4" stroke-width="22" stroke-dasharray="180 470" stroke-linecap="round" stroke-dashoffset="-450"/>
+  <text x="256" y="245" font-family="system-ui,sans-serif" font-size="82" font-weight="800" fill="#e8e8f0" text-anchor="middle">CC</text>
+  <rect x="120" y="380" width="272" height="12" rx="6" fill="#2a2a4a"/>
+  <rect x="120" y="380" width="160" height="12" rx="6" fill="#7c6bff"/>
+</svg>
