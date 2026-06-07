@@ -377,6 +377,64 @@ svg.chart{display:block;overflow:visible}
 
 /* ── Divider ──────────────────────────────────────────────────── */
 .divider{height:1px;background:rgba(255,255,255,.06);margin:0}
+
+/* ── Recipe cards ─────────────────────────────────────────────── */
+.recipe-row{
+  display:flex;align-items:center;gap:12px;padding:13px 16px;
+  border-bottom:1px solid rgba(255,255,255,.05);cursor:pointer;transition:background .15s}
+.recipe-row:last-child{border-bottom:none}
+.recipe-row:active{background:rgba(255,255,255,.04)}
+.recipe-icon{width:40px;height:40px;border-radius:12px;
+  background:linear-gradient(135deg,rgba(167,139,250,.2),rgba(244,114,182,.2));
+  border:1px solid rgba(167,139,250,.2);display:flex;align-items:center;
+  justify-content:center;font-size:18px;flex-shrink:0}
+.recipe-info{flex:1;min-width:0}
+.recipe-name{font-size:14px;font-weight:700}
+.recipe-meta{font-size:11px;color:var(--muted2);margin-top:2px}
+.recipe-add{width:32px;height:32px;border-radius:9px;border:none;
+  background:linear-gradient(135deg,var(--v1),var(--v2));
+  cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.recipe-add svg{width:14px;height:14px;stroke:white;stroke-width:2.5}
+.recipe-del{background:none;border:none;color:rgba(255,255,255,.2);
+  cursor:pointer;font-size:20px;line-height:1;padding:4px;transition:color .15s}
+.recipe-del:active{color:var(--red)}
+
+/* ingredient row in recipe builder */
+.ing-row{display:flex;align-items:center;gap:8px;padding:8px 0;
+  border-bottom:1px solid rgba(255,255,255,.05)}
+.ing-row:last-child{border-bottom:none}
+.ing-name{flex:1;font-size:13px;font-weight:600}
+.ing-amt{font-size:11px;color:var(--muted2)}
+.ing-k{font-size:13px;font-weight:700;color:var(--muted2);min-width:44px;text-align:right}
+
+/* ── Progress / History ───────────────────────────────────────── */
+.overview-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 16px;margin-top:16px}
+.ov-box{background:var(--card);border:1px solid var(--card-border);border-radius:16px;padding:15px}
+.ov-val{font-size:30px;font-weight:900;letter-spacing:-1px;line-height:1}
+.ov-lbl{font-size:11px;color:var(--muted2);margin-top:3px;font-weight:500}
+.ov-sub{font-size:11px;color:var(--muted);margin-top:6px}
+
+.goal-row{display:flex;align-items:center;justify-content:space-between;
+  padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.goal-row:last-child{border-bottom:none}
+.goal-lbl{font-size:13px;color:var(--muted2)}
+.goal-val{font-size:14px;font-weight:700}
+
+.adh-bar{height:6px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;margin-top:8px}
+.adh-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--v1),var(--v2));transition:width .5s}
+
+/* 30-day mini bars */
+.mini-bar-wrap{display:flex;align-items:flex-end;gap:2px;height:60px;padding:0 2px}
+.mini-bar{flex:1;border-radius:2px 2px 0 0;min-height:2px;transition:height .3s}
+
+.week-avg-row{display:flex;justify-content:space-between;align-items:center;
+  padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.week-avg-row:last-child{border-bottom:none}
+.week-avg-lbl{font-size:12px;color:var(--muted2)}
+.week-avg-val{font-size:13px;font-weight:700}
+
+/* streak flame */
+.streak-flame{font-size:28px;line-height:1;margin-bottom:2px}
 </style>
 </head>
 <body>
@@ -585,7 +643,14 @@ const DOTS = ['#a78bfa','#f472b6','#34d399','#fbbf24','#60a5fa','#f87171','#a3e6
 
 // ── State ──────────────────────────────────────────────────────────────────────
 function dk(d=new Date()){return d.toISOString().slice(0,10)}
-function load(){const r=localStorage.getItem('coco2');if(r)return JSON.parse(r);return{log:{},meas:[],wt:[]}}
+function load(){
+  const r=localStorage.getItem('coco2');
+  if(r){const d=JSON.parse(r);
+    if(!d.recipes)d.recipes=[];
+    if(!d.goals)d.goals={targetWeight:null};
+    return d;}
+  return{log:{},meas:[],wt:[],recipes:[],goals:{targetWeight:null}};
+}
 function save(){localStorage.setItem('coco2',JSON.stringify(S))}
 const S=load();
 function todayLog(){if(!S.log[dk()])S.log[dk()]=[];return S.log[dk()]}
@@ -754,6 +819,19 @@ function rScan(){
       <div class="scan-text">
         <h3>Search or Enter Manually</h3>
         <p>Browse 24 common foods or type any macros</p>
+      </div>
+    </div>
+    <div class="scan-card full" onclick="openRecipes()">
+      <div class="scan-icon" style="background:linear-gradient(135deg,rgba(167,139,250,.25),rgba(244,114,182,.25));box-shadow:none;border:1px solid rgba(167,139,250,.3)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--v1)" stroke-width="2" style="width:20px;height:20px">
+          <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2z"/>
+          <path d="M12 8v4l3 3"/>
+          <path d="M8 3.5C9.2 5 10 6.9 10 9M16 3.5C14.8 5 14 6.9 14 9"/>
+        </svg>
+      </div>
+      <div class="scan-text">
+        <h3>My Recipes</h3>
+        <p>${S.recipes.length ? S.recipes.length+' saved · tap to add a portion' : 'Build reusable meals with ingredients'}</p>
       </div>
     </div>
   </div>
@@ -977,48 +1055,281 @@ function confirmAdd(isPer100,k,p,c,f){
 }
 
 // ── PROGRESS ───────────────────────────────────────────────────────────────────
-let pSub='weight';
+let pSub='overview';
 function rProgress(){
   return `<div class="top-pad"></div>
-  <div class="seg"><button class="seg-btn ${pSub==='weight'?'active':''}" onclick="pSub='weight';render()">Weight</button>
-  <button class="seg-btn ${pSub==='cal'?'active':''}" onclick="pSub='cal';render()">Calories</button></div>
-  ${pSub==='weight'?rWeight():rCalHist()}
+  <div class="seg">
+    <button class="seg-btn ${pSub==='overview'?'active':''}" onclick="pSub='overview';render()">Overview</button>
+    <button class="seg-btn ${pSub==='calories'?'active':''}" onclick="pSub='calories';render()">Calories</button>
+    <button class="seg-btn ${pSub==='weight'?'active':''}" onclick="pSub='weight';render()">Weight</button>
+  </div>
+  ${pSub==='overview'?rOverview():pSub==='calories'?rCalHist():rWeight()}
   <div class="bot-pad"></div>`;
 }
 
+/* ── helpers ── */
+function getDayTotals(daysBack=30){
+  const out=[];
+  for(let i=daysBack-1;i>=0;i--){
+    const d=new Date();d.setDate(d.getDate()-i);
+    const key=dk(d);const log=S.log[key]||[];
+    const tot=log.reduce((a,e)=>({k:a.k+e.k,p:a.p+e.p,c:a.c+e.c,f:a.f+e.f}),{k:0,p:0,c:0,f:0});
+    out.push({date:key,label:key.slice(5),logged:log.length>0,...tot});
+  }
+  return out;
+}
+function calcStreak(){
+  let streak=0;
+  for(let i=0;i<60;i++){
+    const d=new Date();d.setDate(d.getDate()-i);
+    const key=dk(d);
+    if((S.log[key]||[]).length>0)streak++;
+    else if(i>0)break; // today can be 0 and we still continue
+  }
+  return streak;
+}
+
+/* ── OVERVIEW ── */
+function rOverview(){
+  const days30=getDayTotals(30);
+  const logged=days30.filter(d=>d.logged);
+  const streak=calcStreak();
+  const weekDays=getDayTotals(7);
+  const weekLogged=weekDays.filter(d=>d.logged);
+  const weekAvg=weekLogged.length?Math.round(weekLogged.reduce((s,d)=>s+d.k,0)/weekLogged.length):0;
+  const adherePct=weekLogged.length?Math.round(weekLogged.filter(d=>d.k<=T.kcal*1.05&&d.k>=T.kcal*.8).length/7*100):0;
+  const wt=S.wt;const latestWt=wt[wt.length-1];
+  const goalWt=S.goals.targetWeight;
+  const toGo=latestWt&&goalWt?(latestWt.v-goalWt).toFixed(1):null;
+  const weeksEst=toGo&&parseFloat(toGo)>0?Math.round(parseFloat(toGo)/0.5):null;
+
+  // 30-day mini bars
+  const maxK=Math.max(...days30.map(d=>d.k),T.kcal);
+  const miniBars=days30.map(d=>{
+    const h=d.logged?Math.max(4,Math.round(d.k/maxK*56)):4;
+    const col=!d.logged?'rgba(255,255,255,.07)':d.k>T.kcal?'#f87171':d.k<T.kcal*.75?'#fbbf24':'#34d399';
+    return `<div class="mini-bar" style="height:${h}px;background:${col};border-radius:2px 2px 0 0"></div>`;
+  }).join('');
+
+  return `
+  <!-- Streak + days -->
+  <div class="overview-grid">
+    <div class="ov-box" style="text-align:center">
+      <div class="streak-flame">${streak>=3?'🔥':'📅'}</div>
+      <div class="ov-val" style="background:linear-gradient(135deg,var(--v1),var(--v2));-webkit-background-clip:text;-webkit-text-fill-color:transparent">${streak}</div>
+      <div class="ov-lbl">day streak</div>
+    </div>
+    <div class="ov-box" style="text-align:center">
+      <div class="streak-flame">📊</div>
+      <div class="ov-val">${logged.length}</div>
+      <div class="ov-lbl">days logged (30d)</div>
+    </div>
+  </div>
+
+  <!-- Weekly avg + adherence -->
+  <div class="section" style="margin-top:12px">
+    <div class="card" style="padding:16px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">This week's average</div>
+          <div style="font-size:26px;font-weight:900;margin-top:4px;letter-spacing:-1px">${weekAvg||'—'}<span style="font-size:14px;font-weight:500;color:var(--muted2)"> kcal</span></div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:11px;color:var(--muted2)">target ${T.kcal}</div>
+          <div style="font-size:20px;font-weight:800;color:${weekAvg>T.kcal?'#f87171':weekAvg>0?'#34d399':'var(--muted)'}">${weekAvg?Math.round(weekAvg/T.kcal*100)+'%':'—'}</div>
+        </div>
+      </div>
+      <div class="adh-bar"><div class="adh-fill" style="width:${Math.min(weekAvg/T.kcal*100,100)}%"></div></div>
+      <div style="font-size:11px;color:var(--muted2);margin-top:8px">${adherePct}% of days on target this week</div>
+    </div>
+  </div>
+
+  <!-- 30-day mini chart -->
+  <div class="section" style="margin-top:12px">
+    <div class="card" style="padding:16px">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">30-day calories</div>
+      <div class="mini-bar-wrap">${miniBars}</div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:6px">
+        <span>30 days ago</span><span>today</span>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:10px;flex-wrap:wrap">
+        <span style="font-size:11px;color:var(--muted2)"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#34d399;margin-right:4px"></span>On target</span>
+        <span style="font-size:11px;color:var(--muted2)"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#f87171;margin-right:4px"></span>Over</span>
+        <span style="font-size:11px;color:var(--muted2)"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#fbbf24;margin-right:4px"></span>Under 75%</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Goals -->
+  <div class="section" style="margin-top:12px">
+    <div class="section-hdr"><span class="section-title">Goals</span></div>
+    <div class="card" style="padding:16px">
+      <div class="goal-row">
+        <span class="goal-lbl">Current weight</span>
+        <span class="goal-val">${latestWt?latestWt.v+' kg':'— (log in Progress → Weight)'}</span>
+      </div>
+      <div class="goal-row">
+        <span class="goal-lbl">Target weight</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input id="goal-wt" type="number" step="0.5" value="${goalWt||''}" placeholder="e.g. 65"
+            style="width:80px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);
+            border-radius:8px;padding:5px 8px;color:var(--text);font-size:14px;font-weight:700;outline:none;text-align:center">
+          <button onclick="saveGoal()" style="padding:5px 12px;border:none;border-radius:8px;background:var(--v1);color:white;font-size:12px;font-weight:700;cursor:pointer">Save</button>
+        </div>
+      </div>
+      ${toGo!==null?`
+      <div class="goal-row">
+        <span class="goal-lbl">To lose</span>
+        <span class="goal-val" style="color:${parseFloat(toGo)>0?'#34d399':'var(--green)'}">${parseFloat(toGo)>0?toGo+' kg':'✓ Goal reached!'}</span>
+      </div>
+      ${weeksEst?`<div class="goal-row">
+        <span class="goal-lbl">Est. time (−0.5 kg/wk)</span>
+        <span class="goal-val" style="color:var(--muted2)">~${weeksEst} weeks</span>
+      </div>`:''}`:
+      '<div style="font-size:12px;color:var(--muted2);padding:4px 0">Set a target weight above to see your estimated timeline.</div>'}
+      <div class="goal-row">
+        <span class="goal-lbl">Daily deficit needed</span>
+        <span class="goal-val" style="color:var(--v1)">${T.kcal} kcal (your target)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Macro weekly averages -->
+  ${weekLogged.length?`
+  <div class="section" style="margin-top:12px">
+    <div class="section-hdr"><span class="section-title">This week's averages</span></div>
+    <div class="card" style="overflow:hidden">
+      ${[
+        ['Protein','p',T.protein,'#34d399'],
+        ['Carbs','c',T.carbs,'#fbbf24'],
+        ['Fat','f',T.fat,'#f87171'],
+      ].map(([lbl,key,target,col])=>{
+        const avg=(weekLogged.reduce((s,d)=>s+d[key],0)/weekLogged.length).toFixed(1);
+        const pct=Math.min(parseFloat(avg)/target*100,100);
+        return `<div style="padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.05)">
+          <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+            <span style="font-size:13px;font-weight:600">${lbl}</span>
+            <span style="font-size:13px;font-weight:700;color:${col}">${avg}g <span style="color:var(--muted);font-weight:400">/ ${target}g</span></span>
+          </div>
+          <div style="height:4px;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden">
+            <div style="height:100%;width:${pct}%;background:${col};border-radius:2px;transition:width .4s"></div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`:''}`;
+}
+
+function saveGoal(){
+  const v=parseFloat(document.getElementById('goal-wt')?.value);
+  if(!v||v<30||v>200){toast('Enter a valid target weight');return}
+  S.goals.targetWeight=v;save();render();toast('Goal saved!');
+}
+
+/* ── CALORIES history ── */
+function rCalHist(){
+  const days30=getDayTotals(30);
+  const logged=days30.filter(d=>d.logged);
+  const avg=logged.length?Math.round(logged.reduce((s,d)=>s+d.k,0)/logged.length):0;
+  const best=logged.length?Math.max(...logged.map(d=>d.k)):0;
+  const onTarget=logged.filter(d=>d.k<=T.kcal*1.05&&d.k>0).length;
+
+  return `
+  <!-- Stats row -->
+  <div class="overview-grid" style="grid-template-columns:1fr 1fr 1fr;padding:0 16px;margin-top:16px">
+    <div class="ov-box" style="text-align:center;padding:12px">
+      <div class="ov-val" style="font-size:22px;color:#34d399">${avg||'—'}</div>
+      <div class="ov-lbl" style="font-size:10px">avg kcal</div>
+    </div>
+    <div class="ov-box" style="text-align:center;padding:12px">
+      <div class="ov-val" style="font-size:22px;color:#a78bfa">${best||'—'}</div>
+      <div class="ov-lbl" style="font-size:10px">best day</div>
+    </div>
+    <div class="ov-box" style="text-align:center;padding:12px">
+      <div class="ov-val" style="font-size:22px;color:#fbbf24">${onTarget}</div>
+      <div class="ov-lbl" style="font-size:10px">on target</div>
+    </div>
+  </div>
+
+  <!-- 30-day bar chart -->
+  <div class="section" style="margin-top:12px">
+    <div class="card" style="padding:16px">
+      <div style="font-size:12px;color:var(--muted2);margin-bottom:12px">Last 30 days vs ${T.kcal} kcal target</div>
+      ${barChart30(days30)}
+    </div>
+  </div>
+
+  <!-- Daily list (last 14) -->
+  <div class="section" style="margin-top:12px">
+    <div class="section-hdr"><span class="section-title">Daily log</span></div>
+    <div class="card" style="overflow:hidden">
+      ${days30.slice().reverse().filter(d=>d.logged).slice(0,14).map(d=>`
+      <div class="hist-row">
+        <span class="hist-date">${d.date}</span>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span style="font-size:10px;color:var(--muted2)">${d.p.toFixed(0)}g P</span>
+          <span class="hist-val" style="color:${d.k>T.kcal?'#f87171':'#34d399'}">${Math.round(d.k)} kcal</span>
+        </div>
+      </div>`).join('') || '<div class="empty" style="padding:20px"><p>No days fully logged yet</p></div>'}
+    </div>
+  </div>`;
+}
+
+function barChart30(days){
+  const W=320,H=80,px=4;
+  const mx=Math.max(T.kcal*1.25,...days.map(d=>d.k),1);
+  const bw=(W-px*2)/days.length-1.5;
+  const ty=H-(T.kcal/mx*H);
+  const bars=days.map((d,i)=>{
+    const x=px+i*((W-px*2)/days.length);
+    const bh=d.logged?Math.max(2,d.k/mx*H):2;
+    const y=H-bh;
+    const col=!d.logged?'rgba(255,255,255,.06)':d.k>T.kcal?'#f87171':'#a78bfa';
+    const lbl=(i===0||i===14||i===29)?days[i].label.slice(3):'';
+    return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${Math.max(bw,1).toFixed(1)}" height="${bh.toFixed(1)}" fill="${col}" rx="2"/>
+      ${lbl?`<text x="${(x+bw/2).toFixed(0)}" y="${H+12}" font-size="8" fill="#64748b" text-anchor="middle">${lbl}</text>`:''}`;
+  }).join('');
+  return `<div class="chart-wrap"><svg class="chart" viewBox="0 0 ${W} ${H+14}" width="100%">
+    <line x1="${px}" y1="${ty.toFixed(1)}" x2="${W-px}" y2="${ty.toFixed(1)}" stroke="#fbbf24" stroke-width="1" stroke-dasharray="4 3" opacity=".6"/>
+    ${bars}
+  </svg></div>`;
+}
+
+/* ── WEIGHT ── */
 function rWeight(){
   const wt=S.wt;
   const latest=wt[wt.length-1];
   const first=wt[0];
   const delta=latest&&first&&wt.length>1?(latest.v-first.v).toFixed(1):null;
+  const goalWt=S.goals.targetWeight;
   return `
   <div class="stat-grid">
     <div class="stat-box">
       <div class="stat-val" style="background:linear-gradient(135deg,#a78bfa,#f472b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent">${latest?latest.v:'—'}</div>
-      <div class="stat-lbl">kg now</div>
+      <div class="stat-lbl">kg current</div>
       ${delta!==null?`<div class="stat-delta" style="color:${parseFloat(delta)<0?'#34d399':'#f87171'}">${parseFloat(delta)>0?'+':''}${delta} kg total</div>`:''}
     </div>
     <div class="stat-box">
-      <div class="stat-val" style="color:var(--muted2)">${wt.length}</div>
-      <div class="stat-lbl">weigh-ins</div>
-      <div class="stat-delta" style="color:var(--muted)">Goal: lose weight</div>
+      <div class="stat-val" style="color:${goalWt?'#34d399':'var(--muted2)'}">${goalWt||'—'}</div>
+      <div class="stat-lbl">kg target</div>
+      ${goalWt&&latest?`<div class="stat-delta" style="color:var(--muted)">${Math.abs(latest.v-goalWt).toFixed(1)} kg to go</div>`:'<div class="stat-delta" style="color:var(--muted)">Set in Overview</div>'}
     </div>
   </div>
   ${wt.length>1?`
-  <div class="section" style="margin-top:16px">
+  <div class="section" style="margin-top:14px">
     <div class="card" style="padding:16px">
-      ${lineChart(wt.map(e=>e.v),wt.map(e=>e.d.slice(5)),'#a78bfa')}
+      ${lineChartWithGoal(wt.map(e=>e.v),wt.map(e=>e.d.slice(5)),goalWt)}
     </div>
   </div>`:''}
   <div class="weight-entry">
     <input id="wi" type="number" step="0.1" placeholder="Weight in kg (e.g. 71.5)">
     <button class="btn-sm" onclick="logWeight()">Log</button>
   </div>
-  <div class="section" style="margin-top:16px">
+  <div class="section" style="margin-top:14px">
     <div class="section-hdr"><span class="section-title">History</span></div>
     <div class="card" style="overflow:hidden">
       ${wt.length===0?'<div class="empty" style="padding:24px"><p>Log your weight above to start tracking</p></div>':
-        wt.slice().reverse().slice(0,10).map(e=>`
+        wt.slice().reverse().slice(0,14).map(e=>`
         <div class="hist-row">
           <span class="hist-date">${e.d}</span>
           <span class="hist-val">${e.v} kg</span>
@@ -1033,31 +1344,29 @@ function logWeight(){
   S.wt.push({d:dk(),v});save();render();toast('Weight logged!');
 }
 
-function rCalHist(){
-  const days=[];
-  for(let i=6;i>=0;i--){
-    const d=new Date();d.setDate(d.getDate()-i);
-    const k=dk(d);const log=S.log[k]||[];
-    const t=log.reduce((s,e)=>s+e.k,0);
-    days.push({d:k.slice(5),v:Math.round(t)});
-  }
-  return `
-  <div class="section" style="margin-top:16px">
-    <div class="card" style="padding:16px">
-      <div style="font-size:12px;color:var(--muted2);margin-bottom:12px">Last 7 days vs ${T.kcal} kcal target</div>
-      ${barChart(days.map(e=>e.v),days.map(e=>e.d),T.kcal)}
-    </div>
-  </div>
-  <div class="section" style="margin-top:16px">
-    <div class="section-hdr"><span class="section-title">Daily totals</span></div>
-    <div class="card" style="overflow:hidden">
-      ${days.slice().reverse().map(e=>`
-      <div class="hist-row">
-        <span class="hist-date">${e.d}</span>
-        <span class="hist-val" style="color:${e.v===0?'var(--muted)':e.v>T.kcal?'#f87171':'#34d399'}">${e.v===0?'—':e.v+' kcal'}</span>
-      </div>`).join('')}
-    </div>
-  </div>`;
+function lineChartWithGoal(vals,labels,goalVal){
+  if(vals.length<2)return '';
+  const W=300,H=80,px=8,py=10;
+  const mn=Math.min(...vals,(goalVal||999))-.5;
+  const mx=Math.max(...vals,(goalVal||0))+.5;
+  const xs=vals.map((_,i)=>px+i*(W-2*px)/(vals.length-1));
+  const ys=vals.map(v=>H-py-(v-mn)/(mx-mn)*(H-2*py));
+  const path=xs.map((x,i)=>(i===0?'M':'L')+x.toFixed(1)+','+ys[i].toFixed(1)).join(' ');
+  const area=path+` L${xs[xs.length-1].toFixed(1)},${H} L${xs[0].toFixed(1)},${H} Z`;
+  const goalY=goalVal?H-py-(goalVal-mn)/(mx-mn)*(H-2*py):null;
+  const lbl=[0,Math.floor(labels.length/2),labels.length-1];
+  return `<div class="chart-wrap"><svg class="chart" viewBox="0 0 ${W} ${H+14}" width="100%">
+    <defs><linearGradient id="wg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#a78bfa" stop-opacity=".3"/>
+      <stop offset="100%" stop-color="#a78bfa" stop-opacity="0"/>
+    </linearGradient></defs>
+    <path d="${area}" fill="url(#wg)"/>
+    ${goalY!==null?`<line x1="${px}" y1="${goalY.toFixed(1)}" x2="${W-px}" y2="${goalY.toFixed(1)}" stroke="#34d399" stroke-width="1.5" stroke-dasharray="5 3" opacity=".8"/>
+    <text x="${W-px+2}" y="${goalY.toFixed(0)}" font-size="8" fill="#34d399" alignment-baseline="middle">goal</text>`:''}
+    <path d="${path}" fill="none" stroke="#a78bfa" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    ${xs.map((x,i)=>`<circle cx="${x.toFixed(1)}" cy="${ys[i].toFixed(1)}" r="2.5" fill="#a78bfa"/>`).join('')}
+    ${lbl.map(i=>`<text x="${xs[i].toFixed(0)}" y="${H+12}" font-size="9" fill="#64748b" text-anchor="middle">${labels[i]}</text>`).join('')}
+  </svg></div>`;
 }
 
 function lineChart(vals,labels,col){
@@ -1240,6 +1549,242 @@ function rPlan(){
   <button class="seg-btn ${planSub==='workout'?'active':''}" onclick="planSub='workout';render()">💪 Workout</button></div>
   ${planSub==='diet'?rDietPlan():rWorkoutPlan()}
   <div class="bot-pad"></div>`;
+}
+
+// ── RECIPES ────────────────────────────────────────────────────────────────────
+let draftRecipe = null; // { name, servings, ingredients:[] }
+
+function recipeTotal(ing){ return ing.reduce((a,i)=>({k:a.k+i.k,p:a.p+i.p,c:a.c+i.c,f:a.f+i.f}),{k:0,p:0,c:0,f:0}) }
+
+function openRecipes(){
+  const list=S.recipes;
+  showSheet('My Recipes',`
+    <button class="btn-grad" style="margin-bottom:14px" onclick="startCreateRecipe()">+ Create New Recipe</button>
+    ${list.length===0?`
+      <div class="empty" style="padding:24px 0">
+        <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8v8"/></svg></div>
+        <p>No recipes yet. Create one by adding ingredients and saving it — then you can quickly add any portion to your log.</p>
+      </div>`:
+      list.map((r,i)=>{
+        const tot=recipeTotal(r.ingredients);
+        const perServ={k:tot.k/r.servings,p:tot.p/r.servings,c:tot.c/r.servings,f:tot.f/r.servings};
+        return `<div class="recipe-row" onclick="openAddRecipe(${i})">
+          <div class="recipe-icon">🍳</div>
+          <div class="recipe-info">
+            <div class="recipe-name">${r.name}</div>
+            <div class="recipe-meta">${r.servings} serving${r.servings!==1?'s':''} · ${Math.round(perServ.k)} kcal · ${perServ.p.toFixed(0)}g P per serving</div>
+            <div class="recipe-meta">${r.ingredients.length} ingredients · ${Math.round(tot.k)} kcal total</div>
+          </div>
+          <button class="recipe-add" onclick="event.stopPropagation();openAddRecipe(${i})">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+          <button class="recipe-del" onclick="event.stopPropagation();deleteRecipe(${i})">×</button>
+        </div>`;
+      }).join('')}
+  `);
+}
+
+function deleteRecipe(i){
+  if(!confirm('Delete this recipe?'))return;
+  S.recipes.splice(i,1);save();openRecipes();toast('Recipe deleted');
+}
+
+function openAddRecipe(i){
+  const r=S.recipes[i];
+  const tot=recipeTotal(r.ingredients);
+  const perServ={k:tot.k/r.servings,p:tot.p/r.servings,c:tot.c/r.servings,f:tot.f/r.servings};
+  showSheet('Add: '+r.name,`
+    <div style="background:rgba(255,255,255,.05);border-radius:14px;padding:14px;margin-bottom:14px">
+      <div style="font-size:12px;color:var(--muted2);margin-bottom:8px">Per serving (${r.servings} total)</div>
+      <div class="confirm-macros">
+        <div class="cm-item"><div class="cm-val" style="color:#a78bfa">${Math.round(perServ.k)}</div><div class="cm-lbl">kcal</div></div>
+        <div class="cm-item"><div class="cm-val" style="color:#34d399">${perServ.p.toFixed(1)}</div><div class="cm-lbl">prot g</div></div>
+        <div class="cm-item"><div class="cm-val" style="color:#fbbf24">${perServ.c.toFixed(1)}</div><div class="cm-lbl">carbs g</div></div>
+        <div class="cm-item"><div class="cm-val" style="color:#f87171">${perServ.f.toFixed(1)}</div><div class="cm-lbl">fat g</div></div>
+      </div>
+    </div>
+    <div class="field"><label>How many servings?</label>
+      <input id="ra-srv" type="number" step="0.25" value="1" min="0.25"
+        oninput="updateRecipeAdd(${perServ.k},${perServ.p},${perServ.c},${perServ.f})">
+    </div>
+    <div class="confirm-macros" id="ra-macros" style="background:rgba(255,255,255,.05);border-radius:14px;padding:14px;margin-bottom:4px">
+      <div class="cm-item"><div id="rak" class="cm-val" style="color:#a78bfa">${Math.round(perServ.k)}</div><div class="cm-lbl">kcal</div></div>
+      <div class="cm-item"><div id="rap" class="cm-val" style="color:#34d399">${perServ.p.toFixed(1)}</div><div class="cm-lbl">prot g</div></div>
+      <div class="cm-item"><div id="rac" class="cm-val" style="color:#fbbf24">${perServ.c.toFixed(1)}</div><div class="cm-lbl">carbs g</div></div>
+      <div class="cm-item"><div id="raf" class="cm-val" style="color:#f87171">${perServ.f.toFixed(1)}</div><div class="cm-lbl">fat g</div></div>
+    </div>
+    <button class="btn-green" onclick="confirmAddRecipe('${r.name}',${perServ.k},${perServ.p},${perServ.c},${perServ.f})">Add to Today's Log</button>
+    <button class="btn-ghost" onclick="openRecipes()">← Back to Recipes</button>
+  `);
+}
+
+function updateRecipeAdd(k,p,c,f){
+  const srv=parseFloat(document.getElementById('ra-srv')?.value)||1;
+  document.getElementById('rak').textContent=Math.round(k*srv);
+  document.getElementById('rap').textContent=(p*srv).toFixed(1);
+  document.getElementById('rac').textContent=(c*srv).toFixed(1);
+  document.getElementById('raf').textContent=(f*srv).toFixed(1);
+}
+
+function confirmAddRecipe(name,k,p,c,f){
+  const srv=parseFloat(document.getElementById('ra-srv')?.value)||1;
+  const label=srv===1?'1 serving':srv+' servings';
+  todayLog().push({n:name,a:label,k:k*srv,p:p*srv,c:c*srv,f:f*srv,ts:Date.now()});
+  save();closeSheet();toast('Added: '+name);go('today');
+}
+
+/* ── CREATE RECIPE ── */
+function startCreateRecipe(){
+  draftRecipe={name:'',servings:1,ingredients:[]};
+  renderCreateRecipe();
+}
+
+function renderCreateRecipe(){
+  const r=draftRecipe;
+  const tot=recipeTotal(r.ingredients);
+  showSheet('New Recipe',`
+    <div class="field"><label>Recipe name</label>
+      <input id="rn" type="text" value="${r.name}" placeholder="e.g. My pasta bolognese"
+        oninput="draftRecipe.name=this.value">
+    </div>
+    <div class="field"><label>Number of servings this makes</label>
+      <input id="rsrv" type="number" min="1" step="1" value="${r.servings}"
+        oninput="draftRecipe.servings=Math.max(1,parseFloat(this.value)||1)">
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Ingredients (${r.ingredients.length})</span>
+      <button onclick="openAddIngredient()" style="padding:6px 12px;border:none;border-radius:8px;background:rgba(167,139,250,.15);color:var(--v1);font-size:12px;font-weight:700;cursor:pointer">+ Add</button>
+    </div>
+
+    ${r.ingredients.length===0?`<div style="padding:16px;text-align:center;color:var(--muted2);font-size:13px;background:rgba(255,255,255,.04);border-radius:12px;margin-bottom:12px">Add ingredients above</div>`:`
+    <div class="card" style="overflow:hidden;margin-bottom:12px">
+      ${r.ingredients.map((ing,i)=>`
+      <div class="ing-row">
+        <div style="flex:1">
+          <div class="ing-name">${ing.n}</div>
+          <div class="ing-amt">${ing.a}g · ${Math.round(ing.k)} kcal · ${ing.p.toFixed(0)}g P</div>
+        </div>
+        <button onclick="removeIngredient(${i})" style="background:none;border:none;color:rgba(255,255,255,.2);font-size:18px;cursor:pointer;padding:2px 4px;transition:color .15s" onmouseenter="this.style.color='#f87171'" onmouseleave="this.style.color='rgba(255,255,255,.2)'">×</button>
+      </div>`).join('')}
+    </div>`}
+
+    ${r.ingredients.length>0?`
+    <div style="background:rgba(255,255,255,.05);border-radius:12px;padding:12px;margin-bottom:12px">
+      <div style="font-size:11px;color:var(--muted2);margin-bottom:6px">Total · per serving (÷${r.servings})</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;text-align:center">
+        <div><div style="font-size:16px;font-weight:800;color:#a78bfa">${Math.round(tot.k/r.servings)}</div><div style="font-size:9px;color:var(--muted)">kcal</div></div>
+        <div><div style="font-size:16px;font-weight:800;color:#34d399">${(tot.p/r.servings).toFixed(1)}</div><div style="font-size:9px;color:var(--muted)">prot g</div></div>
+        <div><div style="font-size:16px;font-weight:800;color:#fbbf24">${(tot.c/r.servings).toFixed(1)}</div><div style="font-size:9px;color:var(--muted)">carbs g</div></div>
+        <div><div style="font-size:16px;font-weight:800;color:#f87171">${(tot.f/r.servings).toFixed(1)}</div><div style="font-size:9px;color:var(--muted)">fat g</div></div>
+      </div>
+    </div>
+    <button class="btn-grad" onclick="saveRecipe()">Save Recipe</button>`:''}
+    <button class="btn-ghost" onclick="openRecipes()">Cancel</button>
+  `);
+}
+
+function openAddIngredient(){
+  // Push current draft name/servings from DOM before leaving
+  draftRecipe.name=document.getElementById('rn')?.value||draftRecipe.name;
+  draftRecipe.servings=parseFloat(document.getElementById('rsrv')?.value)||1;
+
+  showSheet('Add Ingredient',`
+    <div class="field">
+      <input id="ifs" type="search" placeholder="Search ingredient…" autocomplete="off"
+        oninput="renderIngResults(this.value)">
+    </div>
+    <div id="ing-results"></div>
+    <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.07)">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:10px">Or enter manually</div>
+      <div class="field"><label>Name</label><input id="imn" type="text" placeholder="e.g. Homemade sauce"></div>
+      <div class="macro-inputs">
+        <div class="field"><label>Amount (g)</label><input id="ima" type="number" placeholder="100"></div>
+        <div class="field"><label>Kcal per 100g</label><input id="imk" type="number" placeholder="0"></div>
+        <div class="field"><label>Protein g/100g</label><input id="imp" type="number" placeholder="0"></div>
+        <div class="field"><label>Carbs g/100g</label><input id="imc" type="number" placeholder="0"></div>
+        <div class="field"><label>Fat g/100g</label><input id="imf" type="number" placeholder="0"></div>
+      </div>
+      <button class="btn-ghost" onclick="addManualIngredient()">Add this ingredient</button>
+    </div>
+    <button class="btn-ghost" onclick="renderCreateRecipe()">← Back to Recipe</button>
+  `);
+  setTimeout(()=>{document.getElementById('ifs')?.focus();renderIngResults('');},120);
+}
+
+function renderIngResults(q){
+  const el=document.getElementById('ing-results');if(!el)return;
+  const list=q.length<1?COMMON.slice(0,10):COMMON.filter(f=>f.n.toLowerCase().includes(q.toLowerCase()));
+  if(!list.length){el.innerHTML='<p style="color:var(--muted2);font-size:13px;text-align:center;padding:12px">No match</p>';return}
+  el.innerHTML=list.map(f=>`
+    <div class="result-row" onclick='openIngAmount(${JSON.stringify(f)})'>
+      <div class="result-dot"></div>
+      <div class="result-info">
+        <div class="result-name">${f.n}</div>
+        <div class="result-meta">${f.k} kcal · ${f.p}g P · ${f.c}g C · ${f.f}g F per 100g</div>
+      </div>
+      <button class="result-add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg></button>
+    </div>`).join('');
+}
+
+function openIngAmount(food){
+  showSheet('How much?',`
+    <div style="font-size:16px;font-weight:700;margin-bottom:12px">${food.n}</div>
+    <div style="font-size:12px;color:var(--muted2);margin-bottom:14px">${food.k} kcal · ${food.p}g P · ${food.c}g C · ${food.f}g F per 100g</div>
+    <div class="field"><label>Amount in grams</label>
+      <input id="ing-amt" type="number" value="100" placeholder="e.g. 150"
+        oninput="updateIngPreview(${food.k},${food.p},${food.c},${food.f})">
+    </div>
+    <div class="confirm-macros" style="background:rgba(255,255,255,.05);border-radius:14px;padding:12px;margin-bottom:14px">
+      <div class="cm-item"><div id="ip-k" class="cm-val" style="color:#a78bfa">${food.k}</div><div class="cm-lbl">kcal</div></div>
+      <div class="cm-item"><div id="ip-p" class="cm-val" style="color:#34d399">${food.p}</div><div class="cm-lbl">prot g</div></div>
+      <div class="cm-item"><div id="ip-c" class="cm-val" style="color:#fbbf24">${food.c}</div><div class="cm-lbl">carbs g</div></div>
+      <div class="cm-item"><div id="ip-f" class="cm-val" style="color:#f87171">${food.f}</div><div class="cm-lbl">fat g</div></div>
+    </div>
+    <button class="btn-grad" onclick='confirmIngredient(${JSON.stringify(food)})'>Add to Recipe</button>
+    <button class="btn-ghost" onclick="openAddIngredient()">← Back</button>
+  `);
+}
+
+function updateIngPreview(k,p,c,f){
+  const a=parseFloat(document.getElementById('ing-amt')?.value)||100;const r=a/100;
+  document.getElementById('ip-k').textContent=Math.round(k*r);
+  document.getElementById('ip-p').textContent=(p*r).toFixed(1);
+  document.getElementById('ip-c').textContent=(c*r).toFixed(1);
+  document.getElementById('ip-f').textContent=(f*r).toFixed(1);
+}
+
+function confirmIngredient(food){
+  const a=parseFloat(document.getElementById('ing-amt')?.value)||100;const r=a/100;
+  draftRecipe.ingredients.push({n:food.n,a,k:food.k*r,p:food.p*r,c:food.c*r,f:food.f*r});
+  renderCreateRecipe();
+}
+
+function addManualIngredient(){
+  const name=document.getElementById('imn')?.value.trim();
+  const a=parseFloat(document.getElementById('ima')?.value)||100;
+  const k100=parseFloat(document.getElementById('imk')?.value)||0;
+  const p100=parseFloat(document.getElementById('imp')?.value)||0;
+  const c100=parseFloat(document.getElementById('imc')?.value)||0;
+  const f100=parseFloat(document.getElementById('imf')?.value)||0;
+  if(!name){toast('Enter ingredient name');return}
+  const r=a/100;
+  draftRecipe.ingredients.push({n:name,a,k:k100*r,p:p100*r,c:c100*r,f:f100*r});
+  renderCreateRecipe();toast('Added: '+name);
+}
+
+function removeIngredient(i){
+  draftRecipe.ingredients.splice(i,1);
+  renderCreateRecipe();
+}
+
+function saveRecipe(){
+  const name=document.getElementById('rn')?.value.trim()||draftRecipe.name;
+  const servings=parseFloat(document.getElementById('rsrv')?.value)||draftRecipe.servings||1;
+  if(!name){toast('Give your recipe a name');return}
+  if(draftRecipe.ingredients.length===0){toast('Add at least one ingredient');return}
+  S.recipes.push({id:Date.now(),name,servings,ingredients:draftRecipe.ingredients});
+  draftRecipe=null;save();openRecipes();toast('Recipe saved: '+name);
 }
 
 function rDietPlan(){
