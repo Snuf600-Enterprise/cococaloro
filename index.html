@@ -1388,7 +1388,7 @@ const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov',
 const now=new Date();
 document.getElementById('header-date').textContent=`${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]}`;
 go('today');
-if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
+if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
 </script>
 </body>
 </html>
