@@ -648,8 +648,9 @@ function load(){
   if(r){const d=JSON.parse(r);
     if(!d.recipes)d.recipes=[];
     if(!d.goals)d.goals={targetWeight:null};
+    if(!d.customFoods)d.customFoods=[];
     return d;}
-  return{log:{},meas:[],wt:[],recipes:[],goals:{targetWeight:null}};
+  return{log:{},meas:[],wt:[],recipes:[],goals:{targetWeight:null},customFoods:[]};
 }
 function save(){localStorage.setItem('coco2',JSON.stringify(S))}
 const S=load();
@@ -818,7 +819,7 @@ function rScan(){
       </div>
       <div class="scan-text">
         <h3>Search or Enter Manually</h3>
-        <p>Browse 24 common foods or type any macros</p>
+        <p>${S.customFoods.length?S.customFoods.length+' scanned + ':''}24 common foods · or type macros</p>
       </div>
     </div>
     <div class="scan-card full" onclick="openRecipes()">
@@ -892,10 +893,15 @@ async function onBarcode(code){
     const d=await res.json();
     if(d.status!==1)throw 0;
     const nm=d.product.nutriments;
-    closeSheet();
-    openConfirm({n:d.product.product_name||'Product',a:'100g',
+    const food={n:d.product.product_name||'Product',
       k:nm['energy-kcal_100g']||0,p:nm['proteins_100g']||0,
-      c:nm['carbohydrates_100g']||0,f:nm['fat_100g']||0},true);
+      c:nm['carbohydrates_100g']||0,f:nm['fat_100g']||0,per:'100g'};
+    // Save to custom foods if not already present
+    if(!S.customFoods.find(f=>f.n===food.n)){
+      S.customFoods.unshift(food);save();
+    }
+    closeSheet();
+    openConfirm({...food,a:'100g'},true);
   }catch(e){
     const s2=document.getElementById('scan-status');
     if(s2)s2.textContent='⚠ Not found — try Search instead';
@@ -965,9 +971,12 @@ function openSearch(pf=''){
     renderResults('');
   },120);
 }
+function allFoods(){ return [...S.customFoods,...COMMON]; }
+
 function renderResults(q){
   const el=document.getElementById('results');if(!el)return;
-  const list=q.length<1?COMMON.slice(0,12):COMMON.filter(f=>f.n.toLowerCase().includes(q.toLowerCase()));
+  const db=allFoods();
+  const list=q.length<1?db.slice(0,14):db.filter(f=>f.n.toLowerCase().includes(q.toLowerCase()));
   if(!list.length){el.innerHTML='<p style="color:var(--muted2);font-size:13px;text-align:center;padding:16px">No match — use manual entry</p>';return}
   el.innerHTML=list.map(f=>`
     <div class="result-row" onclick='pickSearch(${JSON.stringify(f)})'>
@@ -1714,7 +1723,8 @@ function openAddIngredient(){
 
 function renderIngResults(q){
   const el=document.getElementById('ing-results');if(!el)return;
-  const list=q.length<1?COMMON.slice(0,10):COMMON.filter(f=>f.n.toLowerCase().includes(q.toLowerCase()));
+  const db=allFoods();
+  const list=q.length<1?db.slice(0,12):db.filter(f=>f.n.toLowerCase().includes(q.toLowerCase()));
   if(!list.length){el.innerHTML='<p style="color:var(--muted2);font-size:13px;text-align:center;padding:12px">No match</p>';return}
   el.innerHTML=list.map(f=>`
     <div class="result-row" onclick='openIngAmount(${JSON.stringify(f)})'>
