@@ -378,6 +378,80 @@ svg.chart{display:block;overflow:visible}
 /* ── Divider ──────────────────────────────────────────────────── */
 .divider{height:1px;background:rgba(255,255,255,.06);margin:0}
 
+/* ── Voice Cook Mode ──────────────────────────────────────────── */
+.voice-hero{
+  margin:0 16px 10px;padding:18px;
+  background:linear-gradient(135deg,rgba(167,139,250,.15),rgba(244,114,182,.1));
+  border:1px solid rgba(167,139,250,.25);border-radius:20px;
+  display:flex;align-items:center;gap:14px;cursor:pointer;
+  transition:all .18s;position:relative;overflow:hidden}
+.voice-hero::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(167,139,250,.08),rgba(244,114,182,.08));
+  opacity:0;transition:opacity .18s}
+.voice-hero:active::before{opacity:1}
+.voice-hero:active{transform:scale(.98)}
+.voice-hero-icon{
+  width:56px;height:56px;border-radius:16px;flex-shrink:0;
+  background:linear-gradient(135deg,var(--v1),var(--v2));
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 6px 24px rgba(167,139,250,.4)}
+.voice-hero-icon svg{width:26px;height:26px;stroke:white;stroke-width:2}
+.voice-hero h2{font-size:16px;font-weight:800;margin-bottom:2px}
+.voice-hero p{font-size:12px;color:var(--muted2);line-height:1.4}
+
+/* mic button */
+.mic-btn{
+  width:80px;height:80px;border-radius:50%;border:none;cursor:pointer;
+  background:linear-gradient(135deg,var(--v1),var(--v2));
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 6px 28px rgba(167,139,250,.45);
+  transition:all .2s;flex-shrink:0}
+.mic-btn:active{transform:scale(.93)}
+.mic-btn svg{width:32px;height:32px;stroke:white;stroke-width:2}
+.mic-btn.listening{
+  animation:pulse-mic 1.4s ease-in-out infinite;
+  background:linear-gradient(135deg,#f472b6,#f87171);}
+@keyframes pulse-mic{
+  0%,100%{box-shadow:0 0 0 0 rgba(244,114,182,.5)}
+  50%{box-shadow:0 0 0 18px rgba(244,114,182,0)}}
+
+/* transcript live preview */
+.transcript-live{
+  min-height:48px;background:rgba(255,255,255,.05);border-radius:12px;
+  padding:10px 14px;font-size:14px;color:var(--muted2);font-style:italic;
+  border:1px solid rgba(255,255,255,.07);line-height:1.5;margin-bottom:14px;
+  transition:color .15s}
+.transcript-live.final{color:var(--text);font-style:normal}
+
+/* cook items */
+.cook-item{
+  display:flex;align-items:flex-start;gap:10px;padding:11px 0;
+  border-bottom:1px solid rgba(255,255,255,.05)}
+.cook-item:last-child{border-bottom:none}
+.cook-badge{
+  width:22px;height:22px;border-radius:6px;flex-shrink:0;margin-top:1px;
+  display:flex;align-items:center;justify-content:center;font-size:11px}
+.cook-badge.ok{background:rgba(52,211,153,.15);color:#34d399}
+.cook-badge.warn{background:rgba(251,191,36,.15);color:#fbbf24}
+.cook-badge.err{background:rgba(248,113,113,.15);color:#f87171}
+.cook-item-info{flex:1;min-width:0}
+.cook-item-name{font-size:14px;font-weight:600}
+.cook-item-sub{font-size:11px;color:var(--muted2);margin-top:2px}
+.cook-item-kcal{font-size:14px;font-weight:800;color:var(--v1);white-space:nowrap}
+.cook-scan-btn{
+  padding:5px 10px;border:1px solid rgba(251,191,36,.3);border-radius:8px;
+  background:rgba(251,191,36,.08);color:#fbbf24;font-size:11px;font-weight:700;
+  cursor:pointer;font-family:inherit;white-space:nowrap}
+
+/* cook totals bar */
+.cook-totals{
+  background:rgba(255,255,255,.05);border-radius:14px;
+  padding:12px 14px;display:grid;grid-template-columns:repeat(4,1fr);
+  gap:4px;text-align:center;margin-bottom:12px}
+.ct-val{font-size:17px;font-weight:800}
+.ct-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-top:1px}
+
 /* ── Recipe cards ─────────────────────────────────────────────── */
 .recipe-row{
   display:flex;align-items:center;gap:12px;padding:13px 16px;
@@ -787,6 +861,18 @@ function rScan(){
   const dayIdx=dow===0?6:dow-1;
   const dayPlan=PLAN[dayIdx];
   return `<div class="top-pad"></div>
+  <div class="voice-hero" onclick="openCookMode()" style="margin-top:12px">
+    <div class="voice-hero-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path d="M12 2a3 3 0 013 3v7a3 3 0 01-6 0V5a3 3 0 013-3z"/>
+        <path d="M19 10v2a7 7 0 01-14 0v-2M12 19v3M8 22h8"/>
+      </svg>
+    </div>
+    <div>
+      <h2>Voice Cooking Mode</h2>
+      <p>Speak while you cook — "two teaspoons of olive oil, 200g chicken…" — macros added automatically</p>
+    </div>
+  </div>
   <div class="scan-hero">
     <div class="scan-card" onclick="openBarcode()">
       <div class="scan-icon">
@@ -1935,6 +2021,380 @@ function toast(msg){
 function loadScript(src,cb){
   if(document.querySelector(`script[src="${src}"]`)){cb();return}
   const s=document.createElement('script');s.src=src;s.onload=cb;document.head.appendChild(s);
+}
+
+// ── VOICE COOKING ENGINE ───────────────────────────────────────────────────────
+
+// ── Unit tables ──
+const VOL_TO_ML = {
+  tsp:5,teaspoon:5,teaspoons:5,
+  tbsp:15,tablespoon:15,tablespoons:15,
+  cup:240,cups:240,'half cup':120,'quarter cup':60,
+  ml:1,milliliter:1,milliliters:1,millilitre:1,millilitres:1,
+  cl:10,dl:100,
+  l:1000,liter:1000,liters:1000,litre:1000,litres:1000,
+  'fl oz':30,floz:30,
+};
+const MASS_TO_G = {
+  g:1,gr:1,gram:1,grams:1,
+  kg:1000,kilogram:1000,kilograms:1000,
+  oz:28.35,ounce:28.35,ounces:28.35,
+  lb:453.6,lbs:453.6,pound:453.6,pounds:453.6,
+};
+const WORD_NUM = {
+  zero:0,a:1,an:1,one:1,two:2,three:3,four:4,five:5,
+  six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12,
+  half:.5,'a half':.5,'half a':.5,'half an':.5,
+  quarter:.25,'a quarter':.25,'one quarter':.25,
+  'a couple':2,couple:2,
+};
+// food-specific densities (g per ml)
+const FOOD_DENSITY = {
+  oil:0.92,butter:0.91,'olive oil':0.92,'vegetable oil':0.92,
+  'coconut oil':0.92,'sunflower oil':0.92,'sesame oil':0.92,
+  flour:0.59,'whole grain flour':0.59,'almond flour':0.48,
+  sugar:0.85,'brown sugar':0.77,'powdered sugar':0.56,
+  salt:1.2,milk:1.03,water:1.0,cream:1.0,yogurt:1.05,
+  honey:1.4,'maple syrup':1.32,'soy sauce':1.1,
+};
+
+// ── Number parsing ──
+function parseNum(str){
+  str=str.trim().toLowerCase();
+  // fractions like "1/2"
+  const frac=str.match(/^(\d+)\s*\/\s*(\d+)$/);
+  if(frac)return parseInt(frac[1])/parseInt(frac[2]);
+  // decimals / integers
+  const n=parseFloat(str);
+  if(!isNaN(n))return n;
+  // word numbers (longest first)
+  const sorted=Object.keys(WORD_NUM).sort((a,b)=>b.length-a.length);
+  for(const w of sorted)if(str===w||str.startsWith(w+' '))return WORD_NUM[w];
+  return null;
+}
+
+// ── Parse one spoken sentence ──
+function parseCookingSpeech(raw){
+  let t=raw.toLowerCase()
+    .replace(/i (just |)?(added|put in|poured|threw in|used|added in|added some|put|got)/g,'')
+    .replace(/\b(adding|using|putting|pouring|just|now|also|and then|then|about)\b/g,' ')
+    .replace(/\b(of the|of a|of an|of some|into the|into|in the|to the|in)\b/g,' ')
+    .replace(/\s+/g,' ').trim();
+
+  let amount=1, unit=null, unitG=null, foodRaw=t;
+
+  // 1. try to extract leading number (digit or word)
+  // Word numbers first (longest match)
+  const wordNums=Object.keys(WORD_NUM).sort((a,b)=>b.length-a.length);
+  let matched=false;
+  for(const w of wordNums){
+    if(t===w||(t.startsWith(w+' ')&&!t.startsWith(w+'s'))){
+      amount=WORD_NUM[w]; foodRaw=t.slice(w.length).trim(); matched=true; break;
+    }
+  }
+  if(!matched){
+    const dm=t.match(/^([\d]+(?:[.,]\d+)?(?:\s*\/\s*\d+)?)\s*/);
+    if(dm){amount=parseNum(dm[1].replace(',','.'));foodRaw=t.slice(dm[0].length).trim();}
+  }
+
+  // 2. extract unit from foodRaw
+  const allUnits=[...Object.keys(VOL_TO_ML),...Object.keys(MASS_TO_G)]
+    .sort((a,b)=>b.length-a.length);
+  for(const u of allUnits){
+    if(foodRaw===u||foodRaw.startsWith(u+' ')||foodRaw.startsWith(u+'s ')){
+      unit=u;
+      foodRaw=foodRaw.slice(u.length).replace(/^s?\s+/,'').trim();
+      if(VOL_TO_ML[u])unitG={type:'vol',ml:VOL_TO_ML[u]};
+      else if(MASS_TO_G[u])unitG={type:'mass',g:MASS_TO_G[u]};
+      break;
+    }
+  }
+
+  // 3. strip leading "of/the/a/an/some"
+  foodRaw=foodRaw.replace(/^(of\s+)?(the |a |an |some )+/,'').trim();
+
+  return{amount, unit, unitG, food:foodRaw};
+}
+
+// ── Convert parsed to grams ──
+function toGrams(amount, unitG, foodName){
+  if(!unitG) return amount; // no unit = treat as count, macros per item handled via match
+  if(unitG.type==='mass') return amount * unitG.g;
+  if(unitG.type==='vol'){
+    // find density
+    const fLow=foodName.toLowerCase();
+    let density=1.0;
+    for(const [k,v] of Object.entries(FOOD_DENSITY)){
+      if(fLow.includes(k)){density=v;break;}
+    }
+    return amount * unitG.ml * density;
+  }
+  return amount * 50; // fallback
+}
+
+// ── Fuzzy match against food database ──
+function fuzzyMatch(query, threshold=0.3){
+  const db=allFoods();
+  const qToks=query.toLowerCase().split(/[\s,\-\/]+/).filter(t=>t.length>2);
+  if(!qToks.length) return null;
+
+  let best=null, bestScore=threshold;
+  for(const food of db){
+    const cToks=food.n.toLowerCase().split(/[\s,\-\/\(\)]+/).filter(t=>t.length>2);
+    let score=0;
+    for(const q of qToks){
+      for(const c of cToks){
+        if(c===q)score+=1.0;
+        else if(c.startsWith(q)||q.startsWith(c))score+=0.6;
+        else if(c.includes(q)||q.includes(c))score+=0.3;
+      }
+    }
+    score=score/Math.max(qToks.length,cToks.length);
+    if(score>bestScore){bestScore=score;best=food;}
+  }
+  return best;
+}
+
+// ── Cook session state ──
+let COOK = null;
+// COOK = { name:'', items:[{text,food,amountG,k,p,c,f,matched,missingFood}], pending:[] }
+let SpeechRec = null;
+let isListening = false;
+
+function openCookMode(){
+  COOK = COOK || {name:'My meal', items:[], pending:[]};
+  renderCookSheet();
+}
+
+function renderCookSheet(){
+  const items=COOK.items;
+  const tot=items.filter(i=>i.matched).reduce((a,i)=>({k:a.k+i.k,p:a.p+i.p,c:a.c+i.c,f:a.f+i.f}),{k:0,p:0,c:0,f:0});
+  const missing=items.filter(i=>!i.matched);
+
+  showSheet('🎙 Voice Cooking',`
+    <!-- Mic area -->
+    <div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:4px 0 16px;border-bottom:1px solid rgba(255,255,255,.07);margin-bottom:14px">
+      <div style="font-size:12px;color:var(--muted2);text-align:center">
+        ${isListening?'<span style="color:#f472b6;font-weight:700">● Listening…</span> speak an ingredient'
+          :'Tap mic · say an ingredient · tap again to confirm'}
+      </div>
+      <button class="mic-btn ${isListening?'listening':''}" onclick="toggleMic()" id="mic-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M12 2a3 3 0 013 3v7a3 3 0 01-6 0V5a3 3 0 013-3z"/>
+          <path d="M19 10v2a7 7 0 01-14 0v-2M12 19v3M8 22h8"/>
+        </svg>
+      </button>
+      <div id="transcript-box" class="transcript-live" style="width:100%">
+        ${isListening?'Listening…':'Say something like <b>"two teaspoons of olive oil"</b> or <b>"200 grams of chicken breast"</b>'}
+      </div>
+    </div>
+
+    <!-- Items list -->
+    ${items.length>0?`
+    <div style="margin-bottom:12px">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">
+        Added (${items.length})${missing.length?` · <span style="color:#fbbf24">${missing.length} need scanning</span>`:''}
+      </div>
+      <div class="card" style="overflow:hidden">
+        ${items.map((item,i)=>`
+        <div class="cook-item">
+          <div class="cook-badge ${item.matched?'ok':'warn'}">${item.matched?'✓':'?'}</div>
+          <div class="cook-item-info">
+            <div class="cook-item-name">${item.matched?item.food:'Unknown: "'+item.text+'"'}</div>
+            <div class="cook-item-sub">
+              ${item.matched
+                ?`${item.amountG.toFixed(0)}g · ${item.p.toFixed(1)}g P · ${item.c.toFixed(1)}g C · ${item.f.toFixed(1)}g F`
+                :`Tap to scan or search this ingredient`}
+            </div>
+          </div>
+          ${item.matched
+            ?`<div class="cook-item-kcal">${Math.round(item.k)}</div>`
+            :`<button class="cook-scan-btn" onclick="resolveMissing(${i})">Scan / Find</button>`}
+          <button onclick="removeCookItem(${i})" style="background:none;border:none;color:rgba(255,255,255,.18);font-size:18px;cursor:pointer;padding:2px 0 2px 6px">×</button>
+        </div>`).join('')}
+      </div>
+    </div>
+
+    <!-- Totals -->
+    <div class="cook-totals">
+      <div><div class="ct-val" style="color:#a78bfa">${Math.round(tot.k)}</div><div class="ct-lbl">kcal</div></div>
+      <div><div class="ct-val" style="color:#34d399">${tot.p.toFixed(0)}g</div><div class="ct-lbl">protein</div></div>
+      <div><div class="ct-val" style="color:#fbbf24">${tot.c.toFixed(0)}g</div><div class="ct-lbl">carbs</div></div>
+      <div><div class="ct-val" style="color:#f87171">${tot.f.toFixed(0)}g</div><div class="ct-lbl">fat</div></div>
+    </div>`:''}
+
+    <!-- Actions -->
+    ${items.filter(i=>i.matched).length>0?`
+    <button class="btn-grad" onclick="finishCooking('log')" style="margin-bottom:8px">Add to Today's Log</button>
+    <button class="btn-ghost" onclick="finishCooking('recipe')" style="margin-bottom:8px">Save as Recipe Instead</button>`:''}
+    <button class="btn-ghost" onclick="closeCookMode()">Cancel / Close</button>
+  `);
+}
+
+function toggleMic(){
+  if(isListening){stopMic();}else{startMic();}
+}
+
+function startMic(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){
+    toast('Speech not supported — try Chrome on Android');
+    // Fallback: open a text input
+    openCookTextInput();
+    return;
+  }
+  SpeechRec=new SR();
+  SpeechRec.lang='en-US';
+  SpeechRec.continuous=false;
+  SpeechRec.interimResults=true;
+
+  SpeechRec.onresult=(e)=>{
+    let interim='', final='';
+    for(const r of e.results){
+      if(r.isFinal)final+=r[0].transcript;
+      else interim+=r[0].transcript;
+    }
+    const box=document.getElementById('transcript-box');
+    if(box){
+      box.textContent=final||interim||'Listening…';
+      box.className='transcript-live'+(final?' final':'');
+    }
+    if(final.trim()) processSpeech(final.trim());
+  };
+
+  SpeechRec.onend=()=>{isListening=false;updateMicBtn();};
+  SpeechRec.onerror=(e)=>{
+    isListening=false;updateMicBtn();
+    if(e.error!=='no-speech')toast('Mic error: '+e.error);
+  };
+
+  SpeechRec.start();
+  isListening=true;
+  updateMicBtn();
+}
+
+function stopMic(){
+  if(SpeechRec)try{SpeechRec.stop()}catch(e){}
+  isListening=false;
+  updateMicBtn();
+}
+
+function updateMicBtn(){
+  const btn=document.getElementById('mic-btn');
+  if(btn){
+    btn.className='mic-btn'+(isListening?' listening':'');
+    const box=document.getElementById('transcript-box');
+    if(box&&!isListening&&box.textContent==='Listening…')
+      box.innerHTML='Say something like <b>"two teaspoons of olive oil"</b>';
+  }
+}
+
+function processSpeech(text){
+  isListening=false;
+  updateMicBtn();
+
+  const parsed=parseCookingSpeech(text);
+  const match=fuzzyMatch(parsed.food);
+  let amountG=parsed.unitG?toGrams(parsed.amount,parsed.unitG,parsed.food):parsed.amount*100;
+
+  if(match){
+    const ratio=amountG/100;
+    COOK.items.push({
+      text, food:match.n, amountG,
+      k:match.k*ratio, p:match.p*ratio, c:match.c*ratio, f:match.f*ratio,
+      matched:true
+    });
+  } else {
+    COOK.items.push({text, food:parsed.food, amountG, k:0,p:0,c:0,f:0, matched:false});
+    COOK.pending.push(parsed.food);
+  }
+  renderCookSheet();
+}
+
+function removeCookItem(i){COOK.items.splice(i,1);renderCookSheet();}
+
+function resolveMissing(i){
+  const item=COOK.items[i];
+  // Open barcode scanner, on success update the item
+  showSheet('Scan or Search: "'+item.text+'"',`
+    <p style="font-size:13px;color:var(--muted2);margin-bottom:14px">Scan the barcode of this ingredient, or search below.</p>
+    <div id="reader" style="margin-bottom:12px"></div>
+    <div id="scan-status" style="font-size:13px;color:var(--muted2);text-align:center;margin-bottom:12px">Point camera at barcode</div>
+    <div class="field"><input id="ris" type="search" placeholder="Or search…" oninput="renderResolveResults(this.value,${i})"></div>
+    <div id="resolve-results"></div>
+    <button class="btn-ghost" style="margin-top:8px" onclick="renderCookSheet()">← Back</button>
+  `);
+  setTimeout(()=>renderResolveResults('',i),100);
+  loadScript('https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js',()=>{
+    html5Scanner=new Html5Qrcode('reader');
+    html5Scanner.start({facingMode:'environment'},{fps:10,qrbox:{width:240,height:80}},
+      async(code)=>{
+        if(html5Scanner)try{await html5Scanner.stop()}catch(e){}
+        document.getElementById('scan-status').textContent='Looking up…';
+        try{
+          const res=await fetch(`https://world.openfoodfacts.org/api/v2/product/${code}?fields=product_name,nutriments`);
+          const d=await res.json();if(d.status!==1)throw 0;
+          const nm=d.product.nutriments;
+          const food={n:d.product.product_name||'Product',k:nm['energy-kcal_100g']||0,
+            p:nm['proteins_100g']||0,c:nm['carbohydrates_100g']||0,f:nm['fat_100g']||0,per:'100g'};
+          if(!S.customFoods.find(f=>f.n===food.n)){S.customFoods.unshift(food);save();}
+          applyResolvedFood(i,food);
+        }catch(e){document.getElementById('scan-status').textContent='Not found — search below';}
+      },()=>{});
+  });
+}
+
+function renderResolveResults(q,idx){
+  const el=document.getElementById('resolve-results');if(!el)return;
+  const db=allFoods();
+  const list=q.length<1?db.slice(0,10):db.filter(f=>f.n.toLowerCase().includes(q.toLowerCase())).slice(0,10);
+  el.innerHTML=list.map(f=>`
+    <div class="result-row" onclick='applyResolvedFood(${idx},${JSON.stringify(f)})'>
+      <div class="result-dot"></div>
+      <div class="result-info">
+        <div class="result-name">${f.n}</div>
+        <div class="result-meta">${f.k} kcal · ${f.p}g P per 100g</div>
+      </div>
+    </div>`).join('');
+}
+
+function applyResolvedFood(i,food){
+  if(html5Scanner)try{html5Scanner.stop()}catch(e){}
+  const item=COOK.items[i];
+  const ratio=(item.amountG||100)/100;
+  COOK.items[i]={...item,food:food.n,k:food.k*ratio,p:food.p*ratio,c:food.c*ratio,f:food.f*ratio,matched:true};
+  if(!S.customFoods.find(f=>f.n===food.n)){S.customFoods.unshift(food);save();}
+  renderCookSheet();toast('Matched: '+food.n);
+}
+
+function finishCooking(mode){
+  stopMic();
+  const matched=COOK.items.filter(i=>i.matched);
+  if(mode==='log'){
+    matched.forEach(item=>{
+      todayLog().push({n:item.food,a:item.amountG.toFixed(0)+'g',
+        k:item.k,p:item.p,c:item.c,f:item.f,ts:Date.now()});
+    });
+    save();COOK=null;closeSheet();toast(`Added ${matched.length} ingredients to log`);go('today');
+  } else {
+    // prefill recipe builder with matched items
+    draftRecipe={name:COOK.name,servings:1,
+      ingredients:matched.map(i=>({n:i.food,a:i.amountG,k:i.k,p:i.p,c:i.c,f:i.f}))};
+    COOK=null;renderCreateRecipe();
+  }
+}
+
+function closeCookMode(){stopMic();closeSheet();}
+
+// Text fallback for browsers without speech API
+function openCookTextInput(){
+  showSheet('Type Ingredient',`
+    <p style="font-size:13px;color:var(--muted2);margin-bottom:12px">Type what you added (speech not available on this browser)</p>
+    <div class="field"><input id="tti" type="text" placeholder="e.g. 2 tbsp olive oil, 200g chicken"></div>
+    <button class="btn-grad" onclick="(()=>{const v=document.getElementById('tti').value.trim();if(v){processSpeech(v);}})()">Add</button>
+    <button class="btn-ghost" style="margin-top:8px" onclick="renderCookSheet()">← Back</button>
+  `);
+  setTimeout(()=>document.getElementById('tti')?.focus(),120);
 }
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
